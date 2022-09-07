@@ -1,0 +1,271 @@
+<html>
+
+<head>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone@7.19.0/babel.min.js"></script>
+    <style>
+        fieldset.correct {
+            color: blue;
+        }
+
+        fieldset.correct .correct {
+            background-color: aqua;
+        }
+
+        fieldset.incorrect {
+            color: red;
+        }
+
+        fieldset.incorrect .correct {
+            color: black;
+            background-color: aqua;
+        }
+
+        fieldset.incorrect .incorrect {
+            background-color: pink;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="root">
+
+    </div>
+
+    <script type="text/babel">
+        function showCorrect(value, correct, incorrect) {
+            return value == false ? incorrect : value === true ? correct : "";
+        }
+
+        class Stats extends React.Component {
+            render() {
+                return <div>
+                        <div> Total: {this.props.stats.total} </div>
+                        <div> Correct: {this.props.stats.correct} </div>
+                    </div>
+            }
+        }
+
+        class Answers extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = { radio: null };
+                this.onChange = this.onChange.bind(this);
+            }
+
+            onChange(e) {
+                console.log(e);
+                this.setState({ radio: e.target.id })
+                this.props.answerSelected(e.target.value === "true")
+            }
+            componentDidUpdate(prevProps) {
+                console.log(prevProps, this.props, prevProps.answers == this.props.answers);
+                if (prevProps.answers != this.props.answers) {
+                    this.setState({ radio: null })
+                }
+            }
+            render() {
+                return this.props.answers.map((answer, index) => (
+                    <div key={index}>
+                        <input
+                            type="radio"
+                            name="answer"
+                            id={"answer" + index}
+                            value={!!answer.correct}
+                            className={showCorrect(!!answer.correct, "correct", "incorrect")}
+                            onChange={this.onChange}
+                            checked={this.state.radio == "answer" + index}
+                        />
+
+                        <label
+                            className={showCorrect(!!answer.correct, "correct", "incorrect")}
+                            htmlFor={"answer" + index}
+                        >
+                            {answer.value.trim()}
+                        </label>
+                    </div>
+                ));
+            }
+        }
+
+        class Question extends React.Component {
+            constructor(props) {
+                super(props);
+                this.answerSelected = this.answerSelected.bind(this);
+                this.state = { correct: null };
+                //console.log(this.props);
+            }
+
+            answerSelected(isCorrect) {
+                this.setState({
+                    correct: isCorrect
+                })
+                this.props.answerSelected(isCorrect);
+                
+            }
+            componentDidUpdate(prevProps) {
+
+                if (prevProps.question.question != this.props.question.question) {
+                    this.setState({ correct: null })
+                }
+            }
+            render() {
+                return (<fieldset className={this.state.correct === false ? "incorrect" : this.state.correct === true ? "correct" : ""}>
+                    <legend>{this.props.question.question.trim()}</legend>
+                    <div>
+                        <Answers answers={this.props.question.answers} answerSelected={this.answerSelected} />
+                    </div>
+                    <h3>
+                        {showCorrect(this.state.correct, "Correct!", "Incorrect!")}
+                    </h3>
+
+                </fieldset>)
+            }
+        }
+
+        class Navigator extends React.Component {
+            constructor(props) {
+                super(props);
+                this.navigate = this.navigate.bind(this);
+            }
+
+            navigate() {
+                this.props.navigate();
+            }
+
+            render() {
+                return <button disabled={!this.props.enabled} onClick={this.navigate}>Next </button>
+            }
+        }
+
+        class Quiz extends React.Component {
+            constructor(props) {
+                super(props);
+                this.state = {
+                    selected: false,
+                    sectionId: null,
+                    subSectionId: null,
+                    questionId: null,
+                    question: null,
+                    end: false,
+                    stats: {
+                        total: 0,
+                        correct: 0
+                    }
+                };
+                this.navigate = this.navigate.bind(this);
+                this.answerSelected = this.answerSelected.bind(this);
+
+            }
+
+            selectNextQuestion() {
+                let sectionId = this.state.sectionId || 0;
+                let subSectionId = this.state.subSectionId || 0;
+                let questionId = this.state.questionId || 0;
+
+                const sectionName = Object.keys(this.props.questions)[sectionId];
+                const section = this.props.questions[sectionName];
+                const subSectionName = Object.keys(section)[subSectionId];
+                const subSection = section[subSectionName];
+                const question = Object.keys(subSection)[questionId];
+                const answers = subSection[question];
+
+                this.setState({
+                    question: {
+                        section: sectionName,
+                        subSection: subSectionName,
+                        question,
+                        answers
+                    }
+                });
+
+                if (!Object.keys(subSection)[++questionId]) {
+                    // no more questions in subsection, try next one
+                    if (!Object.keys(section)[++subSectionId]) {
+                        // no more subsections in section
+                        if (!Object.keys(this.props.questions)[++sectionId]) {
+                            //no more sections
+                            this.setState({
+                                end: true
+                            })
+                        } else {
+                            subSectionId = 0;
+                            questionId = 0;
+                        }
+                    } else {
+                        questionId = 0
+                    }
+                }
+                console.log("next question", sectionId, subSectionId, questionId);
+                this.setState({
+                    sectionId,
+                    subSectionId,
+                    questionId
+                })
+
+                console.log(this.state.question);
+
+            }
+
+            navigate() {
+                this.selectNextQuestion();
+            }
+
+            answerSelected(isCorrect) {
+                console.log(this.state.stats);
+                const stats = {
+                        total: this.state.stats.total + 1,
+                        correct: this.state.stats.correct + (isCorrect ? 1 : 0)
+                    };
+                    console.log(stats);
+                this.setState({
+                    selected: true,
+                    stats
+                })
+            }
+
+            componentDidMount() {
+                console.log(this.state.question);
+                this.selectNextQuestion();
+            }
+
+            render() {
+                if (!this.state.question) {
+                    return (<div> Loading! </div>)
+                }
+                return (
+                    <div>
+                        <Question question={this.state.question} answerSelected={this.answerSelected} />
+                        <Stats stats={this.state.stats} />
+                        <Navigator navigate={this.navigate} enabled={this.state.selected} />
+
+                    </div>
+                )
+            }
+        }
+
+        class App {
+            async loadQuestions() {
+                var respone = await fetch("data.json");
+                const question = await respone.json()
+                //console.log(question);
+                return question;
+            }
+
+            async run() {
+                const question = await this.loadQuestions();
+
+                const container = document.getElementById('root');
+                const root = ReactDOM.createRoot(container);
+                root.render(<Quiz questions={question} />);
+            }
+        }
+
+        const app = new App();
+        app.run();
+
+    </script>
+</body>
+
+</html>
