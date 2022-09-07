@@ -1,35 +1,17 @@
 <html>
 
 <head>
+    <!-- CSS only -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone@7.19.0/babel.min.js"></script>
-    <style>
-        fieldset.correct {
-            color: blue;
-        }
-
-        fieldset.correct .correct {
-            background-color: aqua;
-        }
-
-        fieldset.incorrect {
-            color: red;
-        }
-
-        fieldset.incorrect .correct {
-            color: black;
-            background-color: aqua;
-        }
-
-        fieldset.incorrect .incorrect {
-            background-color: pink;
-        }
-    </style>
+   
 </head>
 
 <body>
-    <div id="root">
+    <div id="root" class="container-sm">
 
     </div>
 
@@ -40,10 +22,12 @@
 
         class Stats extends React.Component {
             render() {
-                return <div>
-                        <div> Total: {this.props.stats.total} </div>
-                        <div> Correct: {this.props.stats.correct} </div>
+                return <div class="card">
+                    <div class="card-body">
+                    <div> Total: <span class="badge text-bg-primary">{this.props.stats.total}</span>  </div>
+                    <div> Correct: <span class="badge text-bg-success">{this.props.stats.correct}</span> </div>
                     </div>
+                </div>
             }
         }
 
@@ -67,24 +51,26 @@
             }
             render() {
                 return this.props.answers.map((answer, index) => (
-                    <div key={index}>
-                        <input
-                            type="radio"
-                            name="answer"
-                            id={"answer" + index}
-                            value={!!answer.correct}
-                            className={showCorrect(!!answer.correct, "correct", "incorrect")}
-                            onChange={this.onChange}
-                            checked={this.state.radio == "answer" + index}
-                        />
+                    
+                        <div key={index} className="form-check">
+                            <input
+                                type="radio"
+                                name="answer"
+                                id={"answer" + index}
+                                value={!!answer.correct}
+                                className={"form-check-input " + (this.state.radio?showCorrect(!!answer.correct, "text-success", "text-danger"):"")}
+                                onChange={this.onChange}
+                                checked={this.state.radio == "answer" + index}
+                            />
 
-                        <label
-                            className={showCorrect(!!answer.correct, "correct", "incorrect")}
-                            htmlFor={"answer" + index}
-                        >
-                            {answer.value.trim()}
-                        </label>
-                    </div>
+                            <label
+                                className={"form-check-label " + (this.state.radio?showCorrect(!!answer.correct, "text-success", "text-danger"):"")}
+                                htmlFor={"answer" + index}
+                            >
+                                {answer.value.trim()}
+                            </label>
+                        </div>
+                    
                 ));
             }
         }
@@ -102,7 +88,7 @@
                     correct: isCorrect
                 })
                 this.props.answerSelected(isCorrect);
-                
+
             }
             componentDidUpdate(prevProps) {
 
@@ -111,15 +97,11 @@
                 }
             }
             render() {
-                return (<fieldset className={this.state.correct === false ? "incorrect" : this.state.correct === true ? "correct" : ""}>
+                return (<fieldset>
                     <legend>{this.props.question.question.trim()}</legend>
-                    <div>
+                    <form>
                         <Answers answers={this.props.question.answers} answerSelected={this.answerSelected} />
-                    </div>
-                    <h3>
-                        {showCorrect(this.state.correct, "Correct!", "Incorrect!")}
-                    </h3>
-
+                    </form>
                 </fieldset>)
             }
         }
@@ -135,7 +117,7 @@
             }
 
             render() {
-                return <button disabled={!this.props.enabled} onClick={this.navigate}>Next </button>
+                return <button disabled={!this.props.enabled} onClick={this.navigate} className="btn btn-primary" >Next </button>
             }
         }
 
@@ -215,10 +197,10 @@
             answerSelected(isCorrect) {
                 console.log(this.state.stats);
                 const stats = {
-                        total: this.state.stats.total + 1,
-                        correct: this.state.stats.correct + (isCorrect ? 1 : 0)
-                    };
-                    console.log(stats);
+                    total: this.state.stats.total + 1,
+                    correct: this.state.stats.correct + (isCorrect ? 1 : 0)
+                };
+                console.log(stats);
                 this.setState({
                     selected: true,
                     stats
@@ -238,8 +220,9 @@
                     <div>
                         <Question question={this.state.question} answerSelected={this.answerSelected} />
                         <Stats stats={this.state.stats} />
+                        <hr />
                         <Navigator navigate={this.navigate} enabled={this.state.selected} />
-
+                        
                     </div>
                 )
             }
