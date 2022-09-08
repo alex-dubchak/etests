@@ -5,10 +5,14 @@
     <!-- CSS only -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-gH2yIJqKdNHPEq0n4Mqa/HGKIhSkIHeL5AyhkYV8i59U5AR6csBvApHHNl/vI1Bx" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.0/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-A3rJD856KowSb7dwlZdYEkO39Gagi7vIsF0jrRAoQmDKKtQBHUuLZ9AsSv4jD4Xa"
+        crossorigin="anonymous"></script>
+
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
     <script src="https://unpkg.com/@babel/standalone@7.19.0/babel.min.js"></script>
-   
+
 </head>
 
 <body>
@@ -23,10 +27,12 @@
 
         class Stats extends React.Component {
             render() {
-                return <div class="card">
-                    <div class="card-body">
-                    <div> Total: <span class="badge text-bg-primary">{this.props.stats.total}</span>  </div>
-                    <div> Correct: <span class="badge text-bg-success">{this.props.stats.correct}</span> </div>
+                return <div Name="card">
+                    <div className="card-body">
+                        <div> Total: <span className="badge text-bg-primary">
+                            {this.props.stats.answered} / {this.props.stats.total}</span>
+                        </div>
+                        <div> Correct: <span className="badge text-bg-success">{this.props.stats.correct}</span> </div>
                     </div>
                 </div>
             }
@@ -35,43 +41,43 @@
         class Answers extends React.Component {
             constructor(props) {
                 super(props);
-                this.state = { radio: null };
+                this.state = { radio: this.props.answer };
                 this.onChange = this.onChange.bind(this);
             }
 
             onChange(e) {
-                console.log(e);
                 this.setState({ radio: e.target.id })
-                this.props.answerSelected(e.target.value === "true")
+                this.props.onAnswerSelected(e.target.value === "true", e.target.id)
             }
+
             componentDidUpdate(prevProps) {
-                console.log(prevProps, this.props, prevProps.answers == this.props.answers);
                 if (prevProps.answers != this.props.answers) {
                     this.setState({ radio: null })
                 }
             }
             render() {
                 return this.props.answers.map((answer, index) => (
-                    
-                        <div key={index} className="form-check">
-                            <input
-                                type="radio"
-                                name="answer"
-                                id={"answer" + index}
-                                value={!!answer.correct}
-                                className={"form-check-input " + (this.state.radio?showCorrect(!!answer.correct, "text-success", "text-danger"):"")}
-                                onChange={this.onChange}
-                                checked={this.state.radio == "answer" + index}
-                            />
 
-                            <label
-                                className={"form-check-label " + (this.state.radio?showCorrect(!!answer.correct, "text-success", "text-danger"):"")}
-                                htmlFor={"answer" + index}
-                            >
-                                {answer.value.trim()}
-                            </label>
-                        </div>
-                    
+                    <div key={index} className="form-check">
+                        <input
+                            type="radio"
+                            name="answer"
+                            id={"answer" + index}
+                            value={!!answer.correct}
+                            className={"form-check-input " + (this.state.radio ? showCorrect(!!answer.correct, "text-success", "text-danger") : "")}
+                            onChange={this.onChange}
+                            checked={this.state.radio == "answer" + index}
+                            disabled={this.state.radio}
+                        />
+
+                        <label
+                            className={"form-check-label " + (this.state.radio ? showCorrect(!!answer.correct, "text-success", "text-danger") : "")}
+                            htmlFor={"answer" + index}
+                        >
+                            {answer.value.trim()}
+                        </label>
+                    </div>
+
                 ));
             }
         }
@@ -79,16 +85,15 @@
         class Question extends React.Component {
             constructor(props) {
                 super(props);
-                this.answerSelected = this.answerSelected.bind(this);
+                this.onAnswerSelected = this.onAnswerSelected.bind(this);
                 this.state = { correct: null };
-                //console.log(this.props);
             }
 
-            answerSelected(isCorrect) {
+            onAnswerSelected(isCorrect, id) {
                 this.setState({
                     correct: isCorrect
                 })
-                this.props.answerSelected(isCorrect);
+                this.props.onAnswerSelected(isCorrect, id);
 
             }
             componentDidUpdate(prevProps) {
@@ -98,11 +103,18 @@
                 }
             }
             render() {
+                const alert = this.state.correct !== null ? (
+                    <div className={"alert alert-" + showCorrect(this.state.correct, "success", "danger")}>
+                        {showCorrect(this.state.correct, "Correct!", "Incorrect!")}
+                    </div>
+                ) : null;
                 return (<fieldset>
                     <legend>{this.props.question.question.trim()}</legend>
                     <form>
-                        <Answers answers={this.props.question.answers} answerSelected={this.answerSelected} />
+                        <Answers answers={this.props.question.answers} answer={this.props.answer} onAnswerSelected={this.onAnswerSelected} />
+                        {alert}
                     </form>
+
                 </fieldset>)
             }
         }
@@ -110,15 +122,32 @@
         class Navigator extends React.Component {
             constructor(props) {
                 super(props);
-                this.navigate = this.navigate.bind(this);
+                this.onNavigate = this.onNavigate.bind(this);
             }
 
-            navigate() {
-                this.props.navigate();
+            onNavigate() {
+                this.props.onNavigate();
             }
 
             render() {
-                return <button disabled={!this.props.enabled} onClick={this.navigate} className="btn btn-primary" >Next </button>
+                return <button disabled={!this.props.enabled} onClick={this.onNavigate} className="btn btn-primary" >{this.props.end ? "Finish" : "Next"}</button>
+            }
+        }
+
+        class Location extends React.Component {
+            constructor(props) {
+                super(props);
+            }
+
+            render() {
+                const sections = [this.props.question.section, this.props.question.subSection].map((sec, id) => {
+                    return <li key={id} className="breadcrumb-item"><a href="#">{sec}</a></li>
+                })
+                return <div aria-label="breadcrumb">
+                    <ol className="breadcrumb">
+                        {sections}
+                    </ol>
+                </div>
             }
         }
 
@@ -134,25 +163,22 @@
                     end: false,
                     stats: {
                         total: 0,
-                        correct: 0
+                        answered: 0,
+                        correct: 0,
+                        wrong: []
                     }
                 };
-                this.navigate = this.navigate.bind(this);
-                this.answerSelected = this.answerSelected.bind(this);
+                this.onNavigate = this.onNavigate.bind(this);
+                this.onAnswerSelected = this.onAnswerSelected.bind(this);
 
             }
 
             selectNextQuestion() {
-                let sectionId = this.state.sectionId || 0;
-                let subSectionId = this.state.subSectionId || 0;
                 let questionId = this.state.questionId || 0;
-
-                const sectionName = Object.keys(this.props.questions)[sectionId];
-                const section = this.props.questions[sectionName];
-                const subSectionName = Object.keys(section)[subSectionId];
-                const subSection = section[subSectionName];
-                const question = Object.keys(subSection)[questionId];
-                const answers = subSection[question];
+                const sectionName = this.props.section;
+                const subSectionName = this.props.subSection;
+                const question = Object.keys(this.props.questions)[questionId];
+                const answers = this.props.questions[question];
 
                 this.setState({
                     question: {
@@ -160,48 +186,48 @@
                         subSection: subSectionName,
                         question,
                         answers
+                    },
+                    stats: {
+                        ...this.state.stats,
+                        total: Object.keys(this.props.questions).length
                     }
                 });
 
-                if (!Object.keys(subSection)[++questionId]) {
-                    // no more questions in subsection, try next one
-                    if (!Object.keys(section)[++subSectionId]) {
-                        // no more subsections in section
-                        if (!Object.keys(this.props.questions)[++sectionId]) {
-                            //no more sections
-                            this.setState({
-                                end: true
-                            })
-                        } else {
-                            subSectionId = 0;
-                            questionId = 0;
-                        }
-                    } else {
-                        questionId = 0
-                    }
+                const inc = 1;
+
+                if (!Object.keys(this.props.questions)[questionId + inc]) {
+                    this.setState({ end: true })
+                } else {
+                    questionId += inc;
                 }
-                console.log("next question", sectionId, subSectionId, questionId);
-                this.setState({
-                    sectionId,
-                    subSectionId,
-                    questionId
-                })
 
-                console.log(this.state.question);
-
+                this.setState({ questionId })
             }
 
-            navigate() {
+            onNavigate() {
+                if (this.state.end) this.props.finished(this.state.stats);
+
+                this.setState({
+                    selected: false,
+                });
+
                 this.selectNextQuestion();
             }
 
-            answerSelected(isCorrect) {
-                console.log(this.state.stats);
+            onAnswerSelected(isCorrect, id) {
+
                 const stats = {
-                    total: this.state.stats.total + 1,
+                    ...this.state.stats,
+                    answered: this.state.stats.answered + 1,
                     correct: this.state.stats.correct + (isCorrect ? 1 : 0)
                 };
-                console.log(stats);
+                if (!isCorrect) {
+                    stats.wrong.push({
+                        question: this.state.question,
+                        answer: id
+                    })
+                }
+
                 this.setState({
                     selected: true,
                     stats
@@ -209,7 +235,6 @@
             }
 
             componentDidMount() {
-                console.log(this.state.question);
                 this.selectNextQuestion();
             }
 
@@ -219,21 +244,150 @@
                 }
                 return (
                     <div>
-                        <Question question={this.state.question} answerSelected={this.answerSelected} />
-                        <Stats stats={this.state.stats} />
+                        <Location question={this.state.question} />
+                        <Question question={this.state.question} onAnswerSelected={this.onAnswerSelected} />
+
+                        <Navigator onNavigate={this.onNavigate} enabled={this.state.selected} end={this.state.end} />
                         <hr />
-                        <Navigator navigate={this.navigate} enabled={this.state.selected} />
-                        
+                        <Stats stats={this.state.stats} />
+
+
                     </div>
                 )
             }
         }
 
-        class App {
+        class Select extends React.Component {
+            constructor(props) {
+                super(props);
+                this.select = this.select.bind(this);
+                //this.state = { mode: "select" };
+            }
+
+            select(e) {
+                this.props.select(e.target.dataset.section, e.target.dataset.subSection)
+            }
+
+            render() {
+                const sections = [];
+
+                for (var sectionName in this.props.questions) {
+                    const subSections = [];
+                    for (var subSectionName in this.props.questions[sectionName]) {
+                        var total = Object.keys(this.props.questions[sectionName][subSectionName]).length;
+                        var correct = this.props.stats?.[sectionName + subSectionName]?.correct;
+                        var correctBadge = correct ? <span className="badge text-bg-success">{correct}</span> : null;
+                        subSections.push(<div className="col"
+                            key={sectionName + subSectionName}>
+                            <button
+                                type="button"
+                                className="btn btn-primary position-relative"
+                                data-section={sectionName}
+                                data-sub-section={subSectionName}
+                                onClick={this.select}
+                            >
+                                {subSectionName} {correctBadge}
+                                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{total}</span>
+
+                            </button>
+
+
+                        </div>)
+                    }
+
+                    sections.push(<div key={sectionName} className="row">
+                        <h3 >{sectionName}</h3>
+                        {subSections}
+                    </div>
+                    );
+                }
+                return <div className="container">{sections}</div>
+            }
+        }
+
+        class Results extends React.Component {
+            constructor(props) {
+                super(props);
+                this.onNavigate = this.onNavigate.bind(this);
+            }
+
+            onNavigate() {
+                this.props.onDone();
+            }
+
+            render() {
+                var questions = this.props.stats.wrong.map((el, idx) => {
+                    return <Question question={el.question} answer={el.answer} key={idx} />
+                });
+                return <div>
+                    <h1> Results for {this.props.section} / {this.props.subSection} </h1>
+                    <Stats stats={this.props.stats} />
+                    {questions}
+                    <Navigator onNavigate={this.onNavigate} enabled={true} end={true} />
+                </div>
+            }
+        }
+
+        class App extends React.Component {
+            constructor(props) {
+                super(props);
+                this.select = this.select.bind(this);
+                this.finished = this.finished.bind(this);
+                this.onDone = this.onDone.bind(this);
+                const stateStats = JSON.parse(window.localStorage.getItem('exam-stats')) || {};
+                this.state = { section: '', subSection: '', questions: {}, mode: "select", stats: stateStats };
+            }
+
+            finished(stats) {
+                const stateStats = this.state.stats;
+                stateStats[this.state.section + this.state.subSection] = stats;
+                this.setState({
+                    stats: stateStats,
+                    mode: "results"
+                })
+                window.localStorage.setItem('exam-stats', JSON.stringify(stateStats));
+            }
+
+            onDone() {
+                this.setState({
+                    mode: "select"
+                })
+            }
+
+            select(section, subSection) {
+                const questions = this.props.questions[section][subSection]
+                this.setState({
+                    section,
+                    subSection,
+                    questions,
+                    mode: "quiz"
+                })
+            }
+
+            render() {
+                if (this.state.mode == "select")
+                    return <Select questions={this.props.questions} stats={this.state.stats} select={this.select} />
+
+                if (this.state.mode == "results")
+                    return <Results
+                        stats={this.state.stats[this.state.section + this.state.subSection]}
+                        section={this.state.section}
+                        subSection={this.state.subSection}
+                        onDone={this.onDone} />
+
+                return <Quiz
+                    questions={this.state.questions}
+                    section={this.state.section}
+                    subSection={this.state.subSection}
+                    finished={this.finished}
+                />
+            }
+        }
+
+        class Starter {
             async loadQuestions() {
                 var respone = await fetch("data.json");
                 const question = await respone.json()
-                //console.log(question);
                 return question;
             }
 
@@ -242,11 +396,11 @@
 
                 const container = document.getElementById('root');
                 const root = ReactDOM.createRoot(container);
-                root.render(<Quiz questions={question} />);
+                root.render(<App questions={question} />);
             }
         }
 
-        const app = new App();
+        const app = new Starter();
         app.run();
 
     </script>
