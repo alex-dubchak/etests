@@ -123,14 +123,24 @@
             constructor(props) {
                 super(props);
                 this.onNavigate = this.onNavigate.bind(this);
+                this.onFinish = this.onFinish.bind(this);
             }
 
             onNavigate() {
                 this.props.onNavigate();
             }
 
+            onFinish(){
+                if ((this.props.end && this.props.enabled) || confirm("Are you sure?\nThere are not anserved question!")){
+                    this.props.onNavigate(true);
+                }
+            }
+
             render() {
-                return <button disabled={!this.props.enabled} onClick={this.onNavigate} className="btn btn-primary" >{this.props.end ? "Finish" : "Next"}</button>
+                return <div className="clearfix">
+                        <button disabled={!this.props.enabled} onClick={this.onNavigate} className={"btn btn-primary float-start " + (this.props.end ? "d-none": "")} >"Next"</button>
+                        <button className="btn btn-secondary float-end" onClick={this.onFinish}>Finish</button>
+                    </div>
             }
         }
 
@@ -204,8 +214,8 @@
                 this.setState({ questionId })
             }
 
-            onNavigate() {
-                if (this.state.end) this.props.finished(this.state.stats);
+            onNavigate(isFinish) {
+                if (this.state.end || isFinish) this.props.finished(this.state.stats);
 
                 this.setState({
                     selected: false,
@@ -268,15 +278,31 @@
                 this.props.select(e.target.dataset.section, e.target.dataset.subSection)
             }
 
+            badgeClass(perc){
+                if (perc < 50) return "danger";
+                if (perc < 75) return "warning";
+                return "success";
+            }
+
             render() {
                 const sections = [];
-
+                let tot = 0;
+                let cor = 0;
                 for (var sectionName in this.props.questions) {
                     const subSections = [];
+                    let secTotal = 0;
+                    let secCorrect = 0;
                     for (var subSectionName in this.props.questions[sectionName]) {
                         var total = Object.keys(this.props.questions[sectionName][subSectionName]).length;
-                        var correct = this.props.stats?.[sectionName + subSectionName]?.correct;
-                        var correctBadge = correct ? <span className="badge text-bg-success">{correct}</span> : null;
+                        secTotal += total;
+                        var correct = this.props.stats?.[sectionName + subSectionName]?.correct || 0;
+                        secCorrect+= correct;
+                        var perc = (correct/total * 100).toFixed(0);
+                        var correctBadge = correct ? <span>
+                                <span className="badge text-bg-success">{correct}</span>&nbsp;
+                                <span className={"badge text-bg-" + this.badgeClass(perc)}>{perc}%</span>
+                            </span> 
+                            : null;
                         subSections.push(<div className="col"
                             key={sectionName + subSectionName}>
                             <button
@@ -287,21 +313,29 @@
                                 onClick={this.select}
                             >
                                 {subSectionName} {correctBadge}
-                                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">{total}</span>
+                                <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-Secondary">{total}</span>
 
                             </button>
 
 
                         </div>)
                     }
-
-                    sections.push(<div key={sectionName} className="row">
-                        <h3 >{sectionName}</h3>
+                    tot += secTotal;
+                    cor += secCorrect;
+                    var perc = (secCorrect/secTotal * 100).toFixed(0);
+                    sections.push(<div key={sectionName} className="row py-3">
+                        <h4 >{sectionName} { secCorrect?<span className={"badge text-bg-" + this.badgeClass(perc)}>{perc}%</span>:null}</h4>
                         {subSections}
                     </div>
                     );
                 }
-                return <div className="container">{sections}</div>
+                var perc = (cor/tot * 100).toFixed(0);
+                return <div className="container">
+                    <div className="row py-2">
+                    <h3>Progress: {perc}%</h3>
+                    </div>
+                    {sections
+                }</div>
             }
         }
 
@@ -340,7 +374,7 @@
 
             finished(stats) {
                 const stateStats = this.state.stats;
-                stateStats[this.state.section + this.state.subSection] = stats;
+                if (stats.answered > 0) stateStats[this.state.section + this.state.subSection] = stats;
                 this.setState({
                     stats: stateStats,
                     mode: "results"
